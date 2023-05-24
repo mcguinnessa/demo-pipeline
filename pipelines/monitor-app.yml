@@ -1,0 +1,71 @@
+resources:
+- name: monitor-app-git-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/monitor-demo
+    branch: main
+
+- name: monitor-app-image
+  type: registry-image
+    #type: docker-image
+  icon: docker
+  source:
+    #email: ((docker-hub-email))
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/pipeline-tutorial-monitor-app
+    tag: latest
+
+jobs:
+- name: build-and-push
+  public: true
+  serial: true
+  plan:
+  - get: monitor-app-git-repo
+
+  - task: build-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: monitor-app-git-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: monitor-app-image
+    params: 
+      image: image/image.tar
