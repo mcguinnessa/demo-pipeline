@@ -14,7 +14,7 @@ resources:
     #email: ((docker-hub-email))
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    repository: ((docker-hub-username))/pipeline-tutorial-monitor-app
+    repository: ((docker-hub-username))/node-web-app
     tag: latest
 
 jobs:
@@ -23,6 +23,8 @@ jobs:
   serial: true
   plan:
   - get: monitor-app-git-repo
+    trigger: true
+
 
   - task: build-image
     #This allows it to do privileged things, like mount
