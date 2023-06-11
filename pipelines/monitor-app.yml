@@ -1,12 +1,19 @@
 resources:
-- name: monitor-app-git-repo
+- name: web-repo
   type: git
   icon: github
   source:
     uri: https://github.com/mcguinnessa/monitor-demo
     branch: main
 
-- name: monitor-app-image
+- name: md-mongo-wrapper-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/md-mongo-wrapper
+    branch: main
+
+- name: web-image-docker
   type: registry-image
     #type: docker-image
   icon: docker
@@ -17,16 +24,26 @@ resources:
     repository: ((docker-hub-username))/node-web-app
     tag: latest
 
+- name: md-momngo-wrapper-image-docker
+  type: registry-image
+    #type: docker-image
+  icon: docker
+  source:
+    #email: ((docker-hub-email))
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/md-mongo-wrapper
+    tag: latest
+
 jobs:
-- name: build-and-push
+- name: build-and-push-web
   public: true
   serial: true
   plan:
-  - get: monitor-app-git-repo
+  - get: web-repo
     trigger: true
 
-
-  - task: build-image
+  - task: build-web-image
     #This allows it to do privileged things, like mount
     privileged: true
     config:
@@ -38,7 +55,7 @@ jobs:
           repository: concourse/oci-build-task
 
       inputs:
-      - name: monitor-app-git-repo
+      - name: web-repo
         path: .
       outputs:
       - name: image
@@ -47,7 +64,7 @@ jobs:
       run:
         path: build
 
-  - task: check-build
+  - task: check-web-build
     config:
       platform: linux
       image_resource:
@@ -68,6 +85,59 @@ jobs:
           pwd
           ls -lrt
 
-  - put: monitor-app-image
+  - put: web-image-docker
+    params: 
+      image: image/image.tar
+
+- name: build-and-push-mongo-wrapper
+  public: true
+  serial: true
+  plan:
+  - get: md-mongo-wrapper-repo
+    trigger: true
+
+  - task: build-mongo-wrapper-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: md-mongo-wrapper-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-mongo-wrapper-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: md-momngo-wrapper-image-docker
     params: 
       image: image/image.tar
