@@ -3,7 +3,7 @@ resources:
   type: git
   icon: github
   source:
-    uri: https://github.com/mcguinnessa/monitor-demo
+    uri: https://github.com/mcguinnessa/test-web
     branch: main
 
 - name: md-mongo-wrapper-repo
@@ -34,6 +34,12 @@ resources:
     password: ((docker-hub-password))
     repository: ((docker-hub-username))/md-mongo-wrapper
     tag: latest
+
+- name: node-image
+  type: registry-image
+  source:
+    repository: node
+    tag: 18
 
 jobs:
 - name: build-and-push-web
@@ -89,12 +95,77 @@ jobs:
     params: 
       image: image/image.tar
 
+
+
+
+
+
+
+
+- name: test-wrapper
+  public: true
+  plan:
+  - get: node-image
+  - get: md-mongo-wrapper-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: md-mongo-wrapper-repo
+      outputs:
+      - name: dependencies
+        path: md-mongo-wrapper-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: md-mongo-wrapper-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: md-mongo-wrapper-repo
+      - name: dependencies
+        path: md-mongo-wrapper-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["SERVER_PORT=3000", "run", "test"]
+        dir: md-mongo-wrapper-repo
+
+
+        #- name: build-and-test-wrapper
+        #  public: true
+        #  serial: true
+        #  plan:
+        #  - get: md-mongo-wrapper-repo
+        #    trigger: false
+        #
+        #  - task: mongo-wrapper-test
+        #    config:
+        #      platform: linux
+        #      image_resource:
+        #        type: docker-image
+        #        source:
+        #          repository: alpine
+        #
+        ##      inputs:
+        ##      - name: image
+        #      run:
+        #        path: /bin/sh
+        #        args:
+        #        - -c
+        #        - | 
+        #          npm test
+
 - name: build-and-push-mongo-wrapper
   public: true
   serial: true
   plan:
   - get: md-mongo-wrapper-repo
     trigger: true
+    passed: [test-wrapper]
 
   - task: build-mongo-wrapper-image
     #This allows it to do privileged things, like mount
