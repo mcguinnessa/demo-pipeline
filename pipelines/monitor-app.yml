@@ -3,7 +3,7 @@ resources:
   type: git
   icon: github
   source:
-    uri: https://github.com/mcguinnessa/test-web
+    uri: https://github.com/mcguinnessa/web-fe
     branch: main
 
 - name: md-mongo-wrapper-repo
@@ -21,7 +21,7 @@ resources:
     #email: ((docker-hub-email))
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    repository: ((docker-hub-username))/node-web-app
+    repository: ((docker-hub-username))/web-fe
     tag: latest
 
 - name: md-momngo-wrapper-image-docker
@@ -69,6 +69,8 @@ jobs:
         #CONTEXT: monitor-app-git-repo
       run:
         path: build
+        args: 
+        - -f web-repo/Dockerfile.dev
 
   - task: check-web-build
     config:
@@ -94,13 +96,6 @@ jobs:
   - put: web-image-docker
     params: 
       image: image/image.tar
-
-
-
-
-
-
-
 
 - name: test-wrapper
   public: true
@@ -131,33 +126,8 @@ jobs:
       platform: linux
       run:
         path: npm
-        args: ["SERVER_PORT=3000", "run", "test"]
+        args: ["run", "test"]
         dir: md-mongo-wrapper-repo
-
-
-        #- name: build-and-test-wrapper
-        #  public: true
-        #  serial: true
-        #  plan:
-        #  - get: md-mongo-wrapper-repo
-        #    trigger: false
-        #
-        #  - task: mongo-wrapper-test
-        #    config:
-        #      platform: linux
-        #      image_resource:
-        #        type: docker-image
-        #        source:
-        #          repository: alpine
-        #
-        ##      inputs:
-        ##      - name: image
-        #      run:
-        #        path: /bin/sh
-        #        args:
-        #        - -c
-        #        - | 
-        #          npm test
 
 - name: build-and-push-mongo-wrapper
   public: true

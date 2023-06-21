@@ -23,7 +23,7 @@ resources:
         AWS_ACCESS_KEY_ID: ((aws_access_key))
         AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
 
-  - name: monitor-app-git-repo
+  - name: web-fe-repo
     type: git
     icon: github
     source:
@@ -35,7 +35,7 @@ jobs:
   public: true
   serial: true
   plan:
-  - get: monitor-app-git-repo
+  - get: web-fe-repo
   - task: check-source
     config:
       platform: linux
@@ -44,7 +44,7 @@ jobs:
         source:
           repository: alpine
       inputs:
-      - name: monitor-app-git-repo
+      - name: web-fe-repo
       run:
         path: /bin/sh
         args:
@@ -52,7 +52,7 @@ jobs:
         - |
           ls -lrt
           pwd
-          cd monitor-app-git-repo/terraform
+          cd web-fe-repo/terraform
           pwd
           ls -lrt
           env
@@ -60,14 +60,14 @@ jobs:
   - put: terraform
     params:
       env_name: staging
-      terraform_source: monitor-app-git-repo/terraform
+      terraform_source: web-fe-repo/terraform
       plan_only: true
       vars:
         subnet_cidr: 10.0.1.0/24
 
 - name: terraform-destroy
   plan:
-  - get: monitor-app-git-repo
+  - get: web-fe-repo
     trigger: false
     passed: [terraform-plan]
   - get: terraform
@@ -76,7 +76,7 @@ jobs:
   - put: terraform
     params:
       env_name: staging
-      terraform_source: monitor-app-git-repo/terraform
+      terraform_source: web-fe-repo/terraform
       action: destroy
     get_params:
       action: destroy
