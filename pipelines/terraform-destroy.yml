@@ -6,7 +6,7 @@ resource_types:
     tag: "1.4.6-11d9d59"
 
 resources:
-  - name: terraform
+  - name: webfe-terraform
     type: terraformtype
     check_every: never
     source:
@@ -24,6 +24,24 @@ resources:
         AWS_ACCESS_KEY_ID: ((aws_access_key))
         AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
 
+  - name: wrapper-terraform
+    type: terraformtype
+    check_every: never
+    source:
+      #env_name: staging
+      backend_type: s3
+      backend_config:
+        bucket: adm-monitor-demo-s3bucket
+        key: adm/wrapper-terraform.tfstate
+        region: eu-west-2
+        access_key: ((aws_access_key))
+        secret_key: ((aws_secret_key))
+      vars:
+        tag_name: concourse
+      env:
+        AWS_ACCESS_KEY_ID: ((aws_access_key))
+        AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+
   - name: web-fe-repo
     type: git
     icon: github
@@ -31,8 +49,22 @@ resources:
       uri: https://github.com/mcguinnessa/monitor-demo
       branch: main
 
+  - name: md-mongo-wrapper-repo
+    type: git
+    icon: github
+    source:
+      uri: https://github.com/mcguinnessa/md-mongo-wrapper
+      branch: main
+
+#  - name: cpu-checker-repo
+#    type: git
+#    icon: github
+#    source:
+#      uri: https://github.com/mcguinnessa/demo-cpu-checker
+#      branch: main
+
 jobs:
-- name: terraform-plan
+- name: webfe-terraform-plan
   public: true
   serial: true
   plan:
@@ -58,7 +90,7 @@ jobs:
           ls -lrt
           env
 
-  - put: terraform
+  - put: webfe-terraform
     params:
       env_name: staging
       terraform_source: web-fe-repo/terraform
@@ -66,15 +98,15 @@ jobs:
       vars:
         subnet_cidr: 10.0.1.0/24
 
-- name: terraform-destroy
+- name: webfe-terraform-destroy
   plan:
   - get: web-fe-repo
     trigger: false
-    passed: [terraform-plan]
-  - get: terraform
+    passed: [webfe-terraform-plan]
+  - get: webfe-terraform
     trigger: true
-    passed: [terraform-plan]
-  - put: terraform
+    passed: [webfe-terraform-plan]
+  - put: webfe-terraform
     params:
       env_name: staging
       terraform_source: web-fe-repo/terraform
@@ -82,9 +114,61 @@ jobs:
     get_params:
       action: destroy
 
+########################################################################################################
+#
+# WRAPPER
+#
+########################################################################################################
 
+- name: wrapper-terraform-plan
+  public: true
+  serial: true
+  plan:
+  - get: md-mongo-wrapper-repo
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: md-mongo-wrapper-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd md-mongo-wrapper-repo/terraform
+          pwd
+          ls -lrt
+          env
 
+  - put: wrapper-terraform
+    params:
+      env_name: staging
+      terraform_source: md-mongo-wrapper-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
 
+- name: wrapper-terraform-destroy
+  plan:
+  - get: md-mongo-wrapper-repo
+    trigger: false
+    passed: [wrapper-terraform-plan]
+  - get: wrapper-terraform
+    trigger: true
+    passed: [wrapper-terraform-plan]
+  - put: wrapper-terraform
+    params:
+      env_name: staging
+      terraform_source: md-mongo-wrapper-repo/terraform
+      action: destroy
+    get_params:
+      action: destroy
 
 
 
