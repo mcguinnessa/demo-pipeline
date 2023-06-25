@@ -1,20 +1,27 @@
-
 resource_types:
 - name: terraformtype
   type: docker-image
   source:
     repository: ljfranklin/terraform-resource
-    tag: "1.4.6-11d9d59"
+      #repository: hashicorp/terraform
+    tag: "1.5.1-8500fcc"
 
 resources:
-- name: monitor-app-git-repo
+- name: web-repo
   type: git
   icon: github
   source:
-    uri: https://github.com/mcguinnessa/monitor-demo
+    uri: https://github.com/mcguinnessa/web-fe
     branch: main
 
-- name: monitor-app-image
+- name: md-mongo-wrapper-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/md-mongo-wrapper
+    branch: main
+
+- name: web-image-docker
   type: registry-image
     #type: docker-image
   icon: docker
@@ -22,17 +29,35 @@ resources:
     #email: ((docker-hub-email))
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    repository: ((docker-hub-username))/pipeline-tutorial-monitor-app
+    repository: ((docker-hub-username))/web-fe
     tag: latest
 
-- name: terraform
-  type: terraformtype
+- name: md-momngo-wrapper-image-docker
+  type: registry-image
+    #type: docker-image
+  icon: docker
   source:
-    env_name: staging
+    #email: ((docker-hub-email))
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/md-mongo-wrapper
+    tag: latest
+
+- name: node-image
+  type: registry-image
+  source:
+    repository: node
+    tag: 18
+
+- name: webfe-terraform
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
     backend_type: s3
     backend_config:
       bucket: adm-monitor-demo-s3bucket
-      key: adm/terraform.tfstate
+      key: adm/webfe-terraform.tfstate
       region: eu-west-2
       access_key: ((aws_access_key))
       secret_key: ((aws_secret_key))
@@ -42,14 +67,16 @@ resources:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
 
+
 jobs:
-- name: build-and-push
+- name: build-and-push-web
   public: true
   serial: true
   plan:
-  - get: monitor-app-git-repo
+  - get: web-repo
     trigger: true
-  - task: build-image
+
+  - task: build-web-image
     #This allows it to do privileged things, like mount
     privileged: true
     config:
@@ -61,7 +88,7 @@ jobs:
           repository: concourse/oci-build-task
 
       inputs:
-      - name: monitor-app-git-repo
+      - name: web-repo
         path: .
       outputs:
       - name: image
@@ -69,8 +96,10 @@ jobs:
         #CONTEXT: monitor-app-git-repo
       run:
         path: build
+        args: 
+        - -f web-repo/Dockerfile.dev
 
-  - task: check-build
+  - task: check-web-build
     config:
       platform: linux
       image_resource:
@@ -91,17 +120,17 @@ jobs:
           pwd
           ls -lrt
 
-  - put: monitor-app-image
+  - put: web-image-docker
     params: 
       image: image/image.tar
 
-- name: terraform-plan
+- name: webfe-terraform-plan
   public: true
   serial: true
   plan:
-  - get: monitor-app-git-repo
+  - get: web-repo
     trigger: true
-    passed: [build-and-push]
+    passed: [build-and-push-web]
   - task: check-source
     config:
       platform: linux
@@ -110,7 +139,7 @@ jobs:
         source:
           repository: alpine
       inputs:
-      - name: monitor-app-git-repo
+      - name: web-repo
       run:
         path: /bin/sh
         args:
@@ -123,25 +152,112 @@ jobs:
           ls -lrt
           env
 
-  - put: terraform
+  - put: webfe-terraform
     params:
       env_name: staging
-      terraform_source: monitor-app-git-repo/terraform
+      terraform_source: web-repo/terraform
       plan_only: true
       vars:
         subnet_cidr: 10.0.1.0/24
 
-- name: terraform-apply
+- name: webfe-terraform-apply
   plan:
-  - get: monitor-app-git-repo
+  - get: web-repo
     trigger: false
-    passed: [terraform-plan]
-  - get: terraform
+    passed: [webfe-terraform-plan]
+  - get: webfe-terraform
     trigger: true
-    passed: [terraform-plan]
-  - put: terraform
+    passed: [webfe-terraform-plan]
+  - put: webfe-terraform
     params:
       env_name: staging
-      terraform_source: monitor-app-git-repo/terraform
+      terraform_source: web-repo/terraform
       plan_run: true
 
+
+
+- name: test-wrapper
+  public: true
+  plan:
+  - get: node-image
+  - get: md-mongo-wrapper-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: md-mongo-wrapper-repo
+      outputs:
+      - name: dependencies
+        path: md-mongo-wrapper-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: md-mongo-wrapper-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: md-mongo-wrapper-repo
+      - name: dependencies
+        path: md-mongo-wrapper-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: md-mongo-wrapper-repo
+
+- name: build-and-push-mongo-wrapper
+  public: true
+  serial: true
+  plan:
+  - get: md-mongo-wrapper-repo
+    trigger: true
+    passed: [test-wrapper]
+
+  - task: build-mongo-wrapper-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: md-mongo-wrapper-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-mongo-wrapper-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: md-momngo-wrapper-image-docker
+    params: 
+      image: image/image.tar

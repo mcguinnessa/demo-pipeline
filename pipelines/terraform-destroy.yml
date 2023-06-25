@@ -8,12 +8,13 @@ resource_types:
 resources:
   - name: terraform
     type: terraformtype
+    check_every: never
     source:
-      env_name: staging
+      #env_name: staging
       backend_type: s3
       backend_config:
         bucket: adm-monitor-demo-s3bucket
-        key: adm/terraform.tfstate
+        key: adm/webfe-terraform.tfstate
         region: eu-west-2
         access_key: ((aws_access_key))
         secret_key: ((aws_secret_key))
