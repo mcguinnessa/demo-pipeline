@@ -170,13 +170,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd image
+          cd webfe-image
           pwd
           ls -lrt
 
   - put: web-image-docker
     params: 
-      image: image/image.tar
+      image: webfe-image/image.tar
 
 - name: webfe-tf-plan
   public: true
@@ -311,13 +311,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd image
+          cd wrapper-image
           pwd
           ls -lrt
 
   - put: md-momngo-wrapper-image-docker
     params: 
-      image: image/image.tar
+      image: wrapper-image/image.tar
 
 - name: wrapper-tf-plan
   public: true
@@ -452,13 +452,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd image
+          cd cpu-checker-image
           pwd
           ls -lrt
 
   - put: cpu-checker-image-docker
     params: 
-      image: image/image.tar
+      image: cpu-checker-image/image.tar
 
 - name: cpu-checker-tf-plan
   public: true
