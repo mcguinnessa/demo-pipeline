@@ -28,6 +28,13 @@ resources:
     uri: https://github.com/mcguinnessa/demo-cpu-checker
     branch: main
 
+- name: cputemp-checker-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/demo-cputemp-checker
+    branch: main
+
 - name: web-image-docker
   type: registry-image
     #type: docker-image
@@ -57,6 +64,15 @@ resources:
     repository: ((docker-hub-username))/demo-cpu-checker
     tag: latest
 
+- name: cputemp-checker-image-docker
+  type: registry-image
+  icon: docker
+  source:
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/demo-cputemp-checker
+    tag: latest
+
 - name: node-image
   type: registry-image
   source:
@@ -77,9 +93,13 @@ resources:
       secret_key: ((aws_secret_key))
     vars:
       tag_name: concourse
+      wrapper_port: ((wrapper_port))
+      wrapper_host: ((wrapper_host))
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+      #WRAPPER_PORT: ((wrapper_port))
+      #WRAPPER_HOST: ((wrapper_host))
 
 - name: wrapper-tf
   type: terraformtype
@@ -95,9 +115,16 @@ resources:
       secret_key: ((aws_secret_key))
     vars:
       tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+      #MONGODB_USER: ((mongo_user))
+      #MONGODB_PASSWORD: ((mongo_pass))
+      #MONGODB_URI: ((mongo_url))
 
 - name: cpu-checker-tf
   type: terraformtype
@@ -113,9 +140,43 @@ resources:
       secret_key: ((aws_secret_key))
     vars:
       tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+      #MONGODB_USER: ((mongo_user))
+      #MONGODB_PASSWORD: ((mongo_pass))
+      #MONGODB_URI: ((mongo_url))
+      #mongo_user: ((mongo_user))
+      #mongo_pass: ((mongo_pass))
+      #mongo_url: ((mongo_url))
+      TF_LOG: DEBUG
+
+- name: cputemp-checker-tf
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
+    backend_type: s3
+    backend_config:
+      bucket: adm-monitor-demo-s3bucket
+      key: adm/cputemp-checker-terraform.tfstate
+      region: eu-west-2
+      access_key: ((aws_access_key))
+      secret_key: ((aws_secret_key))
+    vars:
+      tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
+      AWS_ACCESS_KEY_ID: ((aws_access_key))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+      #MONGODB_USER: ((mongo_user))
+      #MONGODB_PASSWORD: ((mongo_pass))
+      #MONGODB_URI: ((mongo_url))
 
 jobs:
   ################################################################################################################
@@ -435,7 +496,7 @@ jobs:
       run:
         path: build
 
-  - task: check-mongo-wrapper-build
+  - task: check-cpu-checker-build
     config:
       platform: linux
       image_resource:
@@ -487,12 +548,26 @@ jobs:
           pwd
           ls -lrt
           env
+#      params:  
+#        MONGODB_USER: ((mongo_user))
+#        MONGODB_PASSWORD: ((mongo_pass))
+#        MONGODB_URI: ((mongo_url))
+#        mongo_user: ((mongo_user))
+#        mongo_pass: ((mongo_pass))
+#        mongo_url: ((mongo_url))
 
   - put: cpu-checker-tf
     params:
       env_name: staging
+      delete_on_failure: true
       terraform_source: cpu-checker-repo/terraform
       plan_only: true
+#      MONGODB_USER: ((mongo_user))
+#      MONGODB_PASSWORD: ((mongo_pass))
+#      MONGODB_URI: ((mongo_url))
+#      mongo_user: ((mongo_user))
+#      mongo_pass: ((mongo_pass))
+#      mongo_url: ((mongo_url))
       vars:
         subnet_cidr: 10.0.1.0/24
 
@@ -508,4 +583,151 @@ jobs:
     params:
       env_name: staging
       terraform_source: cpu-checker-repo/terraform
+      plan_run: true
+#      MONGODB_USER: ((mongo_user))
+#      MONGODB_PASSWORD: ((mongo_pass))
+#      MONGODB_URI: ((mongo_url))
+#      mongo_user: ((mongo_user))
+#      mongo_pass: ((mongo_pass))
+#      mongo_url: ((mongo_url))
+
+  ################################################################################################################
+  #
+  # CPUTEMP CHECKER
+  #
+  ################################################################################################################
+- name: test-cputemp-checker
+  public: true
+  plan:
+  - get: node-image
+  - get: cputemp-checker-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: cputemp-checker-repo
+      outputs:
+      - name: dependencies
+        path: cputemp-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: cputemp-checker-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: cputemp-checker-repo
+      - name: dependencies
+        path: cputemp-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: cputemp-checker-repo
+
+- name: build-and-push-cputemp-checker
+  public: true
+  serial: true
+  plan:
+  - get: cputemp-checker-repo
+    trigger: true
+    passed: [test-cputemp-checker]
+
+  - task: build-cputemp-checker-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: cputemp-checker-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-cputemp-checker-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: cputemp-checker-image-docker
+    params: 
+      image: image/image.tar
+
+- name: cputemp-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: cputemp-checker-repo
+    trigger: true
+    passed: [build-and-push-cputemp-checker]
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: cputemp-checker-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd cputemp-checker-repo/terraform
+          pwd
+          ls -lrt
+          env
+
+  - put: cputemp-checker-tf
+    params:
+      env_name: staging
+      terraform_source: cputemp-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+
+- name: cputemp-checker-tf-apply
+  plan:
+  - get: cputemp-checker-repo
+    trigger: false
+    passed: [cputemp-checker-tf-plan]
+  - get: cputemp-checker-tf
+    trigger: true
+    passed: [cputemp-checker-tf-plan]
+  - put: cputemp-checker-tf
+    params:
+      env_name: staging
+      terraform_source: cputemp-checker-repo/terraform
       plan_run: true
