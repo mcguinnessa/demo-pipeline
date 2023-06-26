@@ -162,7 +162,7 @@ jobs:
           repository: alpine
 
       inputs:
-      - name: webfe-image
+      - name: image
       run:
         path: /bin/sh
         args:
@@ -170,13 +170,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd webfe-image
+          cd image
           pwd
           ls -lrt
 
   - put: web-image-docker
     params: 
-      image: webfe-image/image.tar
+      image: image/image.tar
 
 - name: webfe-tf-plan
   public: true
@@ -288,7 +288,7 @@ jobs:
       - name: md-mongo-wrapper-repo
         path: .
       outputs:
-      - name: wrapper-image
+      - name: image
         #      params:
         #CONTEXT: monitor-app-git-repo
       run:
@@ -311,13 +311,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd wrapper-image
+          cd image
           pwd
           ls -lrt
 
   - put: md-momngo-wrapper-image-docker
     params: 
-      image: wrapper-image/image.tar
+      image: image/image.tar
 
 - name: wrapper-tf-plan
   public: true
@@ -429,7 +429,7 @@ jobs:
       - name: cpu-checker-repo
         path: .
       outputs:
-      - name: cpu-checker-image
+      - name: image
         #      params:
         #CONTEXT: monitor-app-git-repo
       run:
@@ -444,7 +444,7 @@ jobs:
           repository: alpine
 
       inputs:
-      - name: cpu-checker-image
+      - name: image
       run:
         path: /bin/sh
         args:
@@ -452,13 +452,13 @@ jobs:
         - | 
           ls -lrt 
           pwd
-          cd cpu-checker-image
+          cd image
           pwd
           ls -lrt
 
   - put: cpu-checker-image-docker
     params: 
-      image: cpu-checker-image/image.tar
+      image: image/image.tar
 
 - name: cpu-checker-tf-plan
   public: true
