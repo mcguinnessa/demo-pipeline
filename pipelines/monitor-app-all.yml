@@ -370,55 +370,55 @@ jobs:
     params: 
       image: image/image.tar
 
-- name: webfe-tf-plan
-  public: true
-  serial: true
-  plan:
-  - get: web-repo
-    trigger: true
-    passed: [build-and-push-web]
-  - task: check-source
-    config:
-      platform: linux
-      image_resource:
-        type: docker-image
-        source:
-          repository: alpine
-      inputs:
-      - name: web-repo
-      run:
-        path: /bin/sh
-        args:
-        - -c
-        - |
-          ls -lrt
-          pwd
-          cd monitor-app-git-repo/terraform
-          pwd
-          ls -lrt
-          env
-
-  - put: webfe-tf
-    params:
-      env_name: staging
-      terraform_source: web-repo/terraform
-      plan_only: true
-      vars:
-        subnet_cidr: 10.0.1.0/24
+#- name: webfe-tf-plan
+#  public: true
+#  serial: true
+#  plan:
+#  - get: web-repo
+#    trigger: true
+#    passed: [build-and-push-web]
+#  - task: check-source
+#    config:
+#      platform: linux
+#      image_resource:
+#        type: docker-image
+#        source:
+#          repository: alpine
+#      inputs:
+#      - name: web-repo
+#      run:
+#        path: /bin/sh
+#        args:
+#        - -c
+#        - |
+#          ls -lrt
+#          pwd
+#          cd monitor-app-git-repo/terraform
+#          pwd
+#          ls -lrt
+#          env
+#
+#  - put: webfe-tf
+#    params:
+#      env_name: staging
+#      terraform_source: web-repo/terraform
+#      plan_only: true
+#      vars:
+#        subnet_cidr: 10.0.1.0/24
 
 - name: webfe-tf-apply
   plan:
   - get: web-repo
     trigger: true
-    passed: [webfe-tf-plan]
+    passed: [build-and-push-web]
   - get: webfe-image-docker
     trigger: true
-    passed: [webfe-tf-plan]
+    passed: [build-and-push-web]
   - load_var: version
     file: webfe-image-docker/digest
   - get: webfe-tf
     trigger: true
-    passed: [webfe-tf-plan]
+    passed: [build-and-push-web]
   - put: webfe-tf
     params:
       env_name: staging
