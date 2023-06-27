@@ -326,18 +326,15 @@ jobs:
   plan:
   - get: web-repo
     trigger: true
-
   - task: build-web-image
     #This allows it to do privileged things, like mount
     privileged: true
     config:
       platform: linux
-
       image_resource:
         type: registry-image
         source:
           repository: concourse/oci-build-task
-
       inputs:
       - name: web-repo
         path: .
@@ -357,7 +354,6 @@ jobs:
         type: docker-image
         source:
           repository: alpine
-
       inputs:
       - name: image
       run:
@@ -370,7 +366,6 @@ jobs:
           cd image
           pwd
           ls -lrt
-
   - put: web-image-docker
     params: 
       image: image/image.tar
@@ -416,6 +411,11 @@ jobs:
   - get: web-repo
     trigger: true
     passed: [webfe-tf-plan]
+  - get: webfe-image-docker
+    trigger: true
+    passed: [webfe-tf-plan]
+  - load_var: version
+    file: webfe-image-docker/digest
   - get: webfe-tf
     trigger: true
     passed: [webfe-tf-plan]
@@ -424,6 +424,7 @@ jobs:
       env_name: staging
       terraform_source: web-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -557,6 +558,11 @@ jobs:
   - get: md-mongo-wrapper-repo
     trigger: false
     passed: [wrapper-tf-plan]
+  - get: wrapper-image-docker
+    trigger: true
+    passed: [wrapper-tf-plan]
+  - load_var: version
+    file: wrapper-image-docker/digest
   - get: wrapper-tf
     trigger: true
     passed: [wrapper-tf-plan]
@@ -565,6 +571,7 @@ jobs:
       env_name: staging
       terraform_source: md-mongo-wrapper-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -671,6 +678,8 @@ jobs:
   - get: cpu-checker-image-docker
     trigger: true
     passed: [build-and-push-cpu-checker]
+  - load_var: version
+    file: cpu-checker-image-docker/digest
   - task: check-source
     config:
       platform: linux
@@ -693,7 +702,6 @@ jobs:
           pwd
           ls -lrt
           env
-
   - put: cpu-checker-tf
     params:
       env_name: staging
@@ -702,13 +710,18 @@ jobs:
       plan_only: true
       vars:
         subnet_cidr: 10.0.1.0/24
-        docker_sha: cpu-checker-image-docker/digest
+        docker_sha: ((.:version))
 
 - name: cpu-checker-tf-apply
   plan:
   - get: cpu-checker-repo
     trigger: false
     passed: [cpu-checker-tf-plan]
+  - get: cpu-checker-image-docker
+    trigger: true
+    passed: [cpu-checker-tf-plan]
+  - load_var: version
+    file: cpu-checker-image-docker/digest
   - get: cpu-checker-tf
     trigger: true
     passed: [cpu-checker-tf-plan]
@@ -717,7 +730,7 @@ jobs:
       env_name: staging
       terraform_source: cpu-checker-repo/terraform
       plan_run: true
-      docker_sha: cpu-checker-image-docker/digest
+      docker_sha: ((.:version))
 #      MONGODB_USER: ((mongo_user))
 #      MONGODB_PASSWORD: ((mongo_pass))
 #      MONGODB_URI: ((mongo_url))
@@ -857,6 +870,11 @@ jobs:
   - get: cputemp-checker-repo
     trigger: false
     passed: [cputemp-checker-tf-plan]
+  - get: cputemp-checker-image-docker
+    trigger: true
+    passed: [cputemp-checker-tf-plan]
+  - load_var: version
+    file: cputemp-checker-image-docker/digest
   - get: cputemp-checker-tf
     trigger: true
     passed: [cputemp-checker-tf-plan]
@@ -865,6 +883,7 @@ jobs:
       env_name: staging
       terraform_source: cputemp-checker-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -998,6 +1017,11 @@ jobs:
   - get: mem-checker-repo
     trigger: false
     passed: [mem-checker-tf-plan]
+  - get: mem-checker-image-docker
+    trigger: true
+    passed: [mem-checker-tf-plan]
+  - load_var: version
+    file: mem-checker-image-docker/digest
   - get: mem-checker-tf
     trigger: true
     passed: [mem-checker-tf-plan]
@@ -1006,6 +1030,7 @@ jobs:
       env_name: staging
       terraform_source: mem-checker-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -1139,6 +1164,11 @@ jobs:
   - get: disk-checker-repo
     trigger: false
     passed: [disk-checker-tf-plan]
+  - get: disk-checker-image-docker
+    trigger: true
+    passed: [disk-checker-tf-plan]
+  - load_var: version
+    file: disk-checker-image-docker/digest
   - get: disk-checker-tf
     trigger: true
     passed: [disk-checker-tf-plan]
@@ -1147,6 +1177,7 @@ jobs:
       env_name: staging
       terraform_source: disk-checker-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -1280,6 +1311,11 @@ jobs:
   - get: motraffic-checker-repo
     trigger: false
     passed: [motraffic-checker-tf-plan]
+  - get: motraffic-checker-image-docker
+    trigger: true
+    passed: [motraffic-checker-tf-plan]
+  - load_var: version
+    file: motraffic-checker-image-docker/digest
   - get: motraffic-checker-tf
     trigger: true
     passed: [motraffic-checker-tf-plan]
@@ -1288,6 +1324,7 @@ jobs:
       env_name: staging
       terraform_source: motraffic-checker-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
 
   ################################################################################################################
   #
@@ -1333,18 +1370,15 @@ jobs:
   - get: mttraffic-checker-repo
     trigger: true
     passed: [test-mttraffic-checker]
-
   - task: build-mttraffic-checker-image
     #This allows it to do privileged things, like mount
     privileged: true
     config:
       platform: linux
-
       image_resource:
         type: registry-image
         source:
           repository: concourse/oci-build-task
-
       inputs:
       - name: mttraffic-checker-repo
         path: .
@@ -1421,6 +1455,11 @@ jobs:
   - get: mttraffic-checker-repo
     trigger: false
     passed: [mttraffic-checker-tf-plan]
+  - get: mttraffic-checker-image-docker
+    trigger: true
+    passed: [mttraffic-checker-tf-plan]
+  - load_var: version
+    file: mttraffic-checker-image-docker/digest
   - get: mttraffic-checker-tf
     trigger: true
     passed: [mttraffic-checker-tf-plan]
@@ -1429,3 +1468,4 @@ jobs:
       env_name: staging
       terraform_source: mttraffic-checker-repo/terraform
       plan_run: true
+      docker_sha: ((.:version))
