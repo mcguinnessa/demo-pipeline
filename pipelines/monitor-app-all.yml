@@ -35,6 +35,34 @@ resources:
     uri: https://github.com/mcguinnessa/demo-cputemp-checker
     branch: main
 
+- name: mem-checker-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/demo-mem-checker
+    branch: main
+
+- name: motraffic-checker-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/demo-motraffic-checker
+    branch: main
+
+- name: mttraffic-checker-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/demo-mttraffic-checker
+    branch: main
+
+- name: disk-checker-repo
+  type: git
+  icon: github
+  source:
+    uri: https://github.com/mcguinnessa/demo-disk-checker
+    branch: main
+
 - name: web-image-docker
   type: registry-image
     #type: docker-image
@@ -73,6 +101,42 @@ resources:
     repository: ((docker-hub-username))/demo-cputemp-checker
     tag: latest
 
+- name: mem-checker-image-docker
+  type: registry-image
+  icon: docker
+  source:
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/demo-mem-checker
+    tag: latest
+
+- name: disk-checker-image-docker
+  type: registry-image
+  icon: docker
+  source:
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/demo-disk-checker
+    tag: latest
+
+- name: motraffic-checker-image-docker
+  type: registry-image
+  icon: docker
+  source:
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/disk-motraffic-checker
+    tag: latest
+
+- name: mttraffic-checker-image-docker
+  type: registry-image
+  icon: docker
+  source:
+    username: ((docker-hub-username))
+    password: ((docker-hub-password))
+    repository: ((docker-hub-username))/disk-mttraffic-checker
+    tag: latest
+
 - name: node-image
   type: registry-image
   source:
@@ -98,8 +162,6 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      #WRAPPER_PORT: ((wrapper_port))
-      #WRAPPER_HOST: ((wrapper_host))
 
 - name: wrapper-tf
   type: terraformtype
@@ -122,9 +184,6 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      #MONGODB_USER: ((mongo_user))
-      #MONGODB_PASSWORD: ((mongo_pass))
-      #MONGODB_URI: ((mongo_url))
 
 - name: cpu-checker-tf
   type: terraformtype
@@ -146,12 +205,6 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      #MONGODB_USER: ((mongo_user))
-      #MONGODB_PASSWORD: ((mongo_pass))
-      #MONGODB_URI: ((mongo_url))
-      #mongo_user: ((mongo_user))
-      #mongo_pass: ((mongo_pass))
-      #mongo_url: ((mongo_url))
       TF_LOG: DEBUG
 
 - name: cputemp-checker-tf
@@ -174,9 +227,92 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      #MONGODB_USER: ((mongo_user))
-      #MONGODB_PASSWORD: ((mongo_pass))
-      #MONGODB_URI: ((mongo_url))
+
+- name: mem-checker-tf
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
+    backend_type: s3
+    backend_config:
+      bucket: adm-monitor-demo-s3bucket
+      key: adm/mem-checker-terraform.tfstate
+      region: eu-west-2
+      access_key: ((aws_access_key))
+      secret_key: ((aws_secret_key))
+    vars:
+      tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
+      AWS_ACCESS_KEY_ID: ((aws_access_key))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+
+- name: disk-checker-tf
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
+    backend_type: s3
+    backend_config:
+      bucket: adm-monitor-demo-s3bucket
+      key: adm/disk-checker-terraform.tfstate
+      region: eu-west-2
+      access_key: ((aws_access_key))
+      secret_key: ((aws_secret_key))
+    vars:
+      tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
+      AWS_ACCESS_KEY_ID: ((aws_access_key))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+
+- name: motraffic-checker-tf
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
+    backend_type: s3
+    backend_config:
+      bucket: adm-monitor-demo-s3bucket
+      key: adm/motraffic-checker-terraform.tfstate
+      region: eu-west-2
+      access_key: ((aws_access_key))
+      secret_key: ((aws_secret_key))
+    vars:
+      tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
+      AWS_ACCESS_KEY_ID: ((aws_access_key))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+
+- name: mttraffic-checker-tf
+  type: terraformtype
+  check_every : never
+  source:
+    #env_name: staging
+    backend_type: s3
+    backend_config:
+      bucket: adm-monitor-demo-s3bucket
+      key: adm/mttraffic-checker-terraform.tfstate
+      region: eu-west-2
+      access_key: ((aws_access_key))
+      secret_key: ((aws_secret_key))
+    vars:
+      tag_name: concourse
+      mongo_user: ((mongo_user))
+      mongo_pass: ((mongo_pass))
+      mongo_url: ((mongo_url))
+    env:
+      AWS_ACCESS_KEY_ID: ((aws_access_key))
+      AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+
+
 
 jobs:
   ################################################################################################################
@@ -278,7 +414,7 @@ jobs:
 - name: webfe-tf-apply
   plan:
   - get: web-repo
-    trigger: false
+    trigger: true
     passed: [webfe-tf-plan]
   - get: webfe-tf
     trigger: true
@@ -516,16 +652,23 @@ jobs:
           cd image
           pwd
           ls -lrt
+          cat digest
 
   - put: cpu-checker-image-docker
     params: 
       image: image/image.tar
+        #outputs:
+        #- digest: my_sha
+
 
 - name: cpu-checker-tf-plan
   public: true
   serial: true
   plan:
   - get: cpu-checker-repo
+    trigger: true
+    passed: [build-and-push-cpu-checker]
+  - get: cpu-checker-image-docker
     trigger: true
     passed: [build-and-push-cpu-checker]
   - task: check-source
@@ -537,24 +680,19 @@ jobs:
           repository: alpine
       inputs:
       - name: cpu-checker-repo
+      - name: cpu-checker-image-docker
       run:
         path: /bin/sh
         args:
         - -c
         - |
           ls -lrt
+          ls -lrt cpu-checker-image-docker
           pwd
           cd cpu-checker-repo/terraform
           pwd
           ls -lrt
           env
-#      params:  
-#        MONGODB_USER: ((mongo_user))
-#        MONGODB_PASSWORD: ((mongo_pass))
-#        MONGODB_URI: ((mongo_url))
-#        mongo_user: ((mongo_user))
-#        mongo_pass: ((mongo_pass))
-#        mongo_url: ((mongo_url))
 
   - put: cpu-checker-tf
     params:
@@ -562,14 +700,9 @@ jobs:
       delete_on_failure: true
       terraform_source: cpu-checker-repo/terraform
       plan_only: true
-#      MONGODB_USER: ((mongo_user))
-#      MONGODB_PASSWORD: ((mongo_pass))
-#      MONGODB_URI: ((mongo_url))
-#      mongo_user: ((mongo_user))
-#      mongo_pass: ((mongo_pass))
-#      mongo_url: ((mongo_url))
       vars:
         subnet_cidr: 10.0.1.0/24
+        docker_sha: cpu-checker-image-docker/digest
 
 - name: cpu-checker-tf-apply
   plan:
@@ -584,6 +717,7 @@ jobs:
       env_name: staging
       terraform_source: cpu-checker-repo/terraform
       plan_run: true
+      docker_sha: cpu-checker-image-docker/digest
 #      MONGODB_USER: ((mongo_user))
 #      MONGODB_PASSWORD: ((mongo_pass))
 #      MONGODB_URI: ((mongo_url))
@@ -730,4 +864,568 @@ jobs:
     params:
       env_name: staging
       terraform_source: cputemp-checker-repo/terraform
+      plan_run: true
+
+  ################################################################################################################
+  #
+  # MEM CHECKER
+  #
+  ################################################################################################################
+- name: test-mem-checker
+  public: true
+  plan:
+  - get: node-image
+  - get: mem-checker-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: mem-checker-repo
+      outputs:
+      - name: dependencies
+        path: mem-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: mem-checker-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: mem-checker-repo
+      - name: dependencies
+        path: mem-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: mem-checker-repo
+
+- name: build-and-push-mem-checker
+  public: true
+  serial: true
+  plan:
+  - get: mem-checker-repo
+    trigger: true
+    passed: [test-mem-checker]
+
+  - task: build-mem-checker-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: mem-checker-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-mem-checker-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: mem-checker-image-docker
+    params: 
+      image: image/image.tar
+
+- name: mem-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: mem-checker-repo
+    trigger: true
+    passed: [build-and-push-mem-checker]
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: mem-checker-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd mem-checker-repo/terraform
+          pwd
+          ls -lrt
+          env
+
+  - put: mem-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mem-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+
+- name: mem-checker-tf-apply
+  plan:
+  - get: mem-checker-repo
+    trigger: false
+    passed: [mem-checker-tf-plan]
+  - get: mem-checker-tf
+    trigger: true
+    passed: [mem-checker-tf-plan]
+  - put: mem-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mem-checker-repo/terraform
+      plan_run: true
+
+  ################################################################################################################
+  #
+  # DISK CHECKER
+  #
+  ################################################################################################################
+- name: test-disk-checker
+  public: true
+  plan:
+  - get: node-image
+  - get: disk-checker-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: disk-checker-repo
+      outputs:
+      - name: dependencies
+        path: disk-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: disk-checker-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: disk-checker-repo
+      - name: dependencies
+        path: disk-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: disk-checker-repo
+
+- name: build-and-push-disk-checker
+  public: true
+  serial: true
+  plan:
+  - get: disk-checker-repo
+    trigger: true
+    passed: [test-disk-checker]
+
+  - task: build-disk-checker-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: disk-checker-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-disk-checker-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: disk-checker-image-docker
+    params: 
+      image: image/image.tar
+
+- name: disk-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: disk-checker-repo
+    trigger: true
+    passed: [build-and-push-disk-checker]
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: disk-checker-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd disk-checker-repo/terraform
+          pwd
+          ls -lrt
+          env
+
+  - put: disk-checker-tf
+    params:
+      env_name: staging
+      terraform_source: disk-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+
+- name: disk-checker-tf-apply
+  plan:
+  - get: disk-checker-repo
+    trigger: false
+    passed: [disk-checker-tf-plan]
+  - get: disk-checker-tf
+    trigger: true
+    passed: [disk-checker-tf-plan]
+  - put: disk-checker-tf
+    params:
+      env_name: staging
+      terraform_source: disk-checker-repo/terraform
+      plan_run: true
+
+  ################################################################################################################
+  #
+  # MOTRAFFIC CHECKER
+  #
+  ################################################################################################################
+- name: test-motraffic-checker
+  public: true
+  plan:
+  - get: node-image
+  - get: motraffic-checker-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: motraffic-checker-repo
+      outputs:
+      - name: dependencies
+        path: motraffic-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: motraffic-checker-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: motraffic-checker-repo
+      - name: dependencies
+        path: motraffic-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: motraffic-checker-repo
+
+- name: build-and-push-motraffic-checker
+  public: true
+  serial: true
+  plan:
+  - get: motraffic-checker-repo
+    trigger: true
+    passed: [test-motraffic-checker]
+
+  - task: build-motraffic-checker-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: motraffic-checker-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-motraffic-checker-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: motraffic-checker-image-docker
+    params: 
+      image: image/image.tar
+
+- name: motraffic-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: motraffic-checker-repo
+    trigger: true
+    passed: [build-and-push-motraffic-checker]
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: motraffic-checker-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd motraffic-checker-repo/terraform
+          pwd
+          ls -lrt
+          env
+
+  - put: motraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: motraffic-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+
+- name: motraffic-checker-tf-apply
+  plan:
+  - get: motraffic-checker-repo
+    trigger: false
+    passed: [motraffic-checker-tf-plan]
+  - get: motraffic-checker-tf
+    trigger: true
+    passed: [motraffic-checker-tf-plan]
+  - put: motraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: motraffic-checker-repo/terraform
+      plan_run: true
+
+  ################################################################################################################
+  #
+  # MTTRAFFIC CHECKER
+  #
+  ################################################################################################################
+- name: test-mttraffic-checker
+  public: true
+  plan:
+  - get: node-image
+  - get: mttraffic-checker-repo
+    trigger: true
+  - task: install
+    image: node-image
+    config:
+      inputs:
+      - name: mttraffic-checker-repo
+      outputs:
+      - name: dependencies
+        path: mttraffic-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["install"]
+        dir: mttraffic-checker-repo
+  - task: test
+    image: node-image
+    config:
+      inputs:
+      - name: mttraffic-checker-repo
+      - name: dependencies
+        path: mttraffic-checker-repo/node_modules
+      platform: linux
+      run:
+        path: npm
+        args: ["run", "test"]
+        dir: mttraffic-checker-repo
+
+- name: build-and-push-mttraffic-checker
+  public: true
+  serial: true
+  plan:
+  - get: mttraffic-checker-repo
+    trigger: true
+    passed: [test-mttraffic-checker]
+
+  - task: build-mttraffic-checker-image
+    #This allows it to do privileged things, like mount
+    privileged: true
+    config:
+      platform: linux
+
+      image_resource:
+        type: registry-image
+        source:
+          repository: concourse/oci-build-task
+
+      inputs:
+      - name: mttraffic-checker-repo
+        path: .
+      outputs:
+      - name: image
+        #      params:
+        #CONTEXT: monitor-app-git-repo
+      run:
+        path: build
+
+  - task: check-mttraffic-checker-build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+
+      inputs:
+      - name: image
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - | 
+          ls -lrt 
+          pwd
+          cd image
+          pwd
+          ls -lrt
+
+  - put: mttraffic-checker-image-docker
+    params: 
+      image: image/image.tar
+
+- name: mttraffic-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: mttraffic-checker-repo
+    trigger: true
+    passed: [build-and-push-mttraffic-checker]
+  - task: check-source
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      inputs:
+      - name: mttraffic-checker-repo
+      run:
+        path: /bin/sh
+        args:
+        - -c
+        - |
+          ls -lrt
+          pwd
+          cd mttraffic-checker-repo/terraform
+          pwd
+          ls -lrt
+          env
+
+  - put: mttraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mttraffic-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+
+- name: mttraffic-checker-tf-apply
+  plan:
+  - get: mttraffic-checker-repo
+    trigger: false
+    passed: [mttraffic-checker-tf-plan]
+  - get: mttraffic-checker-tf
+    trigger: true
+    passed: [mttraffic-checker-tf-plan]
+  - put: mttraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mttraffic-checker-repo/terraform
       plan_run: true
