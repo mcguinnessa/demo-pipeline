@@ -162,6 +162,7 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
+      TF_LOG: DEBUG
 
 - name: wrapper-tf
   type: terraformtype
@@ -370,13 +371,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: webfe-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: web-repo
-#    trigger: true
-#    passed: [build-and-push-web]
+- name: webfe-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: web-repo
+    trigger: true
+    passed: [build-and-push-web]
+  - get: web-image-docker
+    trigger: true
+    passed: [build-and-push-web]
+  - load_var: version
+    file: web-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -397,28 +403,31 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#
-#  - put: webfe-tf
-#    params:
-#      env_name: staging
-#      terraform_source: web-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: webfe-tf
+    params:
+      env_name: staging
+      terraform_source: web-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: webfe-tf-apply
+#  public: true
+#  serial: true
   plan:
   - get: web-repo
     trigger: true
-    passed: [build-and-push-web]
+#    passed: [build-and-push-web]
+    passed: [webfe-tf-plan]
   - get: web-image-docker
     trigger: true
     #passed: [build-and-push-web]
   - load_var: version
     file: web-image-docker/digest
   - get: webfe-tf
-#    trigger: true
-#    passed: [build-and-push-web]
+    trigger: true
+    passed: [webfe-tf-plan]
   - put: webfe-tf
     params:
       env_name: staging
@@ -517,13 +526,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: wrapper-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: md-mongo-wrapper-repo
-#    trigger: true
-#    passed: [build-and-push-mongo-wrapper]
+- name: wrapper-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: md-mongo-wrapper-repo
+    trigger: true
+    passed: [build-and-push-mongo-wrapper]
+  - get: wrapper-image-docker
+    trigger: true
+    passed: [build-and-push-mongo-wrapper]
+  - load_var: version
+    file: wrapper-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -544,28 +558,29 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#
-#  - put: wrapper-tf
-#    params:
-#      env_name: staging
-#      terraform_source: md-mongo-wrapper-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: wrapper-tf
+    params:
+      env_name: staging
+      terraform_source: md-mongo-wrapper-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: wrapper-tf-apply
   plan:
   - get: md-mongo-wrapper-repo
     trigger: true
-    passed: [build-and-push-mongo-wrapper]
+    passed: [wrapper-tf-plan]
+#    passed: [build-and-push-mongo-wrapper]
   - get: wrapper-image-docker
     trigger: true
       #passed: [wrapper-tf-plan]
   - load_var: version
     file: wrapper-image-docker/digest
   - get: wrapper-tf
-#    trigger: true
-#    passed: [wrapper-tf-plan]
+    trigger: true
+    passed: [wrapper-tf-plan]
   - put: wrapper-tf
     params:
       env_name: staging
@@ -667,18 +682,18 @@ jobs:
         #outputs:
         #- digest: my_sha
 
-#- name: cpu-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: cpu-checker-repo
-#    trigger: true
-#    passed: [build-and-push-cpu-checker]
-#  - get: cpu-checker-image-docker
-#    trigger: true
-#    passed: [build-and-push-cpu-checker]
-#  - load_var: version
-#    file: cpu-checker-image-docker/digest
+- name: cpu-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: cpu-checker-repo
+    trigger: true
+    passed: [build-and-push-cpu-checker]
+  - get: cpu-checker-image-docker
+    trigger: true
+    passed: [build-and-push-cpu-checker]
+  - load_var: version
+    file: cpu-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -701,41 +716,35 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#  - put: cpu-checker-tf
-#    params:
-#      env_name: staging
-#      delete_on_failure: true
-#      terraform_source: cpu-checker-repo/terraform
-#      plan_only: true
-#      vars:
-#        subnet_cidr: 10.0.1.0/24
-#        docker_sha: ((.:version))
+  - put: cpu-checker-tf
+    params:
+      env_name: staging
+      delete_on_failure: true
+      terraform_source: cpu-checker-repo/terraform
+      plan_only: true
+      vars:
+        subnet_cidr: 10.0.1.0/24
+        docker_sha: ((.:version))
 
 - name: cpu-checker-tf-apply
   plan:
   - get: cpu-checker-repo
     trigger: true
-    passed: [build-and-push-cpu-checker]
+    passed: [cpu-checker-tf-plan]
   - get: cpu-checker-image-docker
     trigger: true
 #    passed: [cpu-checker-tf-plan]
   - load_var: version
     file: cpu-checker-image-docker/digest
   - get: cpu-checker-tf
-#    trigger: true
-#    passed: [cpu-checker-tf-plan]
+    trigger: true
+    passed: [cpu-checker-tf-plan]
   - put: cpu-checker-tf
     params:
       env_name: staging
       terraform_source: cpu-checker-repo/terraform
       plan_run: true
       docker_sha: ((.:version))
-#      MONGODB_USER: ((mongo_user))
-#      MONGODB_PASSWORD: ((mongo_pass))
-#      MONGODB_URI: ((mongo_url))
-#      mongo_user: ((mongo_user))
-#      mongo_pass: ((mongo_pass))
-#      mongo_url: ((mongo_url))
 
   ################################################################################################################
   #
@@ -828,13 +837,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: cputemp-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: cputemp-checker-repo
-#    trigger: true
-#    passed: [build-and-push-cputemp-checker]
+- name: cputemp-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: cputemp-checker-repo
+    trigger: true
+    passed: [build-and-push-cputemp-checker]
+  - get: cputemp-checker-image-docker
+    trigger: true
+    passed: [build-and-push-cputemp-checker]
+  - load_var: version
+    file: cputemp-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -855,27 +869,28 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#  - put: cputemp-checker-tf
-#    params:
-#      env_name: staging
-#      terraform_source: cputemp-checker-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: cputemp-checker-tf
+    params:
+      env_name: staging
+      terraform_source: cputemp-checker-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: cputemp-checker-tf-apply
   plan:
   - get: cputemp-checker-repo
     trigger: true
-    passed: [build-and-push-cputemp-checker]
+    passed: [cputemp-checker-tf-plan]
   - get: cputemp-checker-image-docker
     trigger: true
 #    passed: [cputemp-checker-tf-plan]
   - load_var: version
     file: cputemp-checker-image-docker/digest
   - get: cputemp-checker-tf
-#    trigger: true
-#    passed: [cputemp-checker-tf-plan]
+    trigger: true
+    passed: [cputemp-checker-tf-plan]
   - put: cputemp-checker-tf
     params:
       env_name: staging
@@ -974,13 +989,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: mem-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: mem-checker-repo
-#    trigger: true
-#    passed: [build-and-push-mem-checker]
+- name: mem-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: mem-checker-repo
+    trigger: true
+    passed: [build-and-push-mem-checker]
+  - get: mem-checker-image-docker
+    trigger: true
+    passed: [build-and-push-mem-checker]
+  - load_var: version
+    file: mem-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -1001,28 +1021,28 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#
-#  - put: mem-checker-tf
-#    params:
-#      env_name: staging
-#      terraform_source: mem-checker-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: mem-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mem-checker-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: mem-checker-tf-apply
   plan:
   - get: mem-checker-repo
     trigger: true
-    passed: [build-and-push-mem-checker]
+    passed: [mem-checker-tf-plan]
   - get: mem-checker-image-docker
     trigger: true
 #    passed: [mem-checker-tf-plan]
   - load_var: version
     file: mem-checker-image-docker/digest
   - get: mem-checker-tf
-#    trigger: true
-#    passed: [mem-checker-tf-plan]
+    trigger: true
+    passed: [mem-checker-tf-plan]
   - put: mem-checker-tf
     params:
       env_name: staging
@@ -1121,13 +1141,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: disk-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: disk-checker-repo
-#    trigger: true
-#    passed: [build-and-push-disk-checker]
+- name: disk-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: disk-checker-repo
+    trigger: true
+    passed: [build-and-push-disk-checker]
+  - get: disk-checker-image-docker
+    trigger: true
+    passed: [build-and-push-disk-checker]
+  - load_var: version
+    file: disk-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -1149,27 +1174,28 @@ jobs:
 #          ls -lrt
 #          env
 #
-#  - put: disk-checker-tf
-#    params:
-#      env_name: staging
-#      terraform_source: disk-checker-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: disk-checker-tf
+    params:
+      env_name: staging
+      terraform_source: disk-checker-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: disk-checker-tf-apply
   plan:
   - get: disk-checker-repo
     trigger: true
-    passed: [build-and-push-disk-checker]
+    passed: [disk-checker-tf-plan]
   - get: disk-checker-image-docker
     trigger: true
 #    passed: [disk-checker-tf-plan]
   - load_var: version
     file: disk-checker-image-docker/digest
   - get: disk-checker-tf
-#    trigger: true
-#    passed: [disk-checker-tf-plan]
+    trigger: true
+    passed: [disk-checker-tf-plan]
   - put: disk-checker-tf
     params:
       env_name: staging
@@ -1268,13 +1294,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: motraffic-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: motraffic-checker-repo
-#    trigger: true
-#    passed: [build-and-push-motraffic-checker]
+- name: motraffic-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: motraffic-checker-repo
+    trigger: true
+    passed: [build-and-push-motraffic-checker]
+  - get: motraffic-checker-image-docker
+    trigger: true
+    passed: [build-and-push-motraffic-checker]
+  - load_var: version
+    file: motraffic-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -1296,27 +1327,28 @@ jobs:
 #          ls -lrt
 #          env
 #
-#  - put: motraffic-checker-tf
-#    params:
-#      env_name: staging
-#      terraform_source: motraffic-checker-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: motraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: motraffic-checker-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: motraffic-checker-tf-apply
   plan:
   - get: motraffic-checker-repo
     trigger: true
-    passed: [build-and-push-motraffic-checker]
+    passed: [motraffic-checker-tf-plan]
   - get: motraffic-checker-image-docker
     trigger: true
 #    passed: [motraffic-checker-tf-plan]
   - load_var: version
     file: motraffic-checker-image-docker/digest
   - get: motraffic-checker-tf
-#    trigger: true
-#    passed: [motraffic-checker-tf-plan]
+    trigger: true
+    passed: [motraffic-checker-tf-plan]
   - put: motraffic-checker-tf
     params:
       env_name: staging
@@ -1412,13 +1444,18 @@ jobs:
     params: 
       image: image/image.tar
 
-#- name: mttraffic-checker-tf-plan
-#  public: true
-#  serial: true
-#  plan:
-#  - get: mttraffic-checker-repo
-#    trigger: true
-#    passed: [build-and-push-mttraffic-checker]
+- name: mttraffic-checker-tf-plan
+  public: true
+  serial: true
+  plan:
+  - get: mttraffic-checker-repo
+    trigger: true
+    passed: [build-and-push-mttraffic-checker]
+  - get: mttraffic-checker-image-docker
+    trigger: true
+    passed: [build-and-push-mttraffic-checker]
+  - load_var: version
+    file: mttraffic-checker-image-docker/digest
 #  - task: check-source
 #    config:
 #      platform: linux
@@ -1439,28 +1476,28 @@ jobs:
 #          pwd
 #          ls -lrt
 #          env
-#
-#  - put: mttraffic-checker-tf
-#    params:
-#      env_name: staging
-#      terraform_source: mttraffic-checker-repo/terraform
-#      plan_only: true
-#      vars:
+  - put: mttraffic-checker-tf
+    params:
+      env_name: staging
+      terraform_source: mttraffic-checker-repo/terraform
+      plan_only: true
+      vars:
+        docker_sha: ((.:version))
 #        subnet_cidr: 10.0.1.0/24
 
 - name: mttraffic-checker-tf-apply
   plan:
   - get: mttraffic-checker-repo
     trigger: true
-    passed: [build-and-push-mttraffic-checker]
+    passed: [mttraffic-checker-tf-plan]
   - get: mttraffic-checker-image-docker
     trigger: true
 #    passed: [mttraffic-checker-tf-plan]
   - load_var: version
     file: mttraffic-checker-image-docker/digest
   - get: mttraffic-checker-tf
-#    trigger: true
-#    passed: [mttraffic-checker-tf-plan]
+    trigger: true
+    passed: [mttraffic-checker-tf-plan]
   - put: mttraffic-checker-tf
     params:
       env_name: staging
