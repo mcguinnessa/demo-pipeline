@@ -125,7 +125,7 @@ resources:
   source:
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    repository: ((docker-hub-username))/disk-motraffic-checker
+    repository: ((docker-hub-username))/demo-motraffic-checker
     tag: latest
 
 - name: mttraffic-checker-image-docker
@@ -134,7 +134,7 @@ resources:
   source:
     username: ((docker-hub-username))
     password: ((docker-hub-password))
-    repository: ((docker-hub-username))/disk-mttraffic-checker
+    repository: ((docker-hub-username))/demo-mttraffic-checker
     tag: latest
 
 - name: node-image
@@ -162,7 +162,7 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      TF_LOG: DEBUG
+#      TF_LOG: DEBUG
 
 - name: wrapper-tf
   type: terraformtype
@@ -206,7 +206,7 @@ resources:
     env:
       AWS_ACCESS_KEY_ID: ((aws_access_key))
       AWS_SECRET_ACCESS_KEY: ((aws_secret_key))
-      TF_LOG: DEBUG
+#      TF_LOG: DEBUG
 
 - name: cputemp-checker-tf
   type: terraformtype
